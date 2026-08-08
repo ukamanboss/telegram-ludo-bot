@@ -1,4 +1,9 @@
-// ================= CONSTANTS & COORDINATE MAPS =================
+// ================= CONFIGURATION =================
+// ⚠️⚠️⚠️ AMAN BHAI: YAHAN APNE BACKEND KA RENDER URL DAAL (Bina https:// ke) ⚠️⚠️⚠️
+// Iske bina Multiplayer connect nahi hoga aur 'Server Error' aayega!
+const BACKEND_DOMAIN = "telegram-ludo-bot-backend-41s7.onrender.com"; // Example
+
+// ================= CONSTANTS & MAPS =================
 const COLORS = ["Red", "Green", "Yellow", "Blue"];
 const START_TRACK_INDICES = { Red: 1, Green: 14, Yellow: 27, Blue: 40 };
 const SAFE_CELLS = new Set([1, 9, 14, 22, 27, 35, 40, 48]);
@@ -32,7 +37,7 @@ const BASE_POCKETS = {
     Blue:   [[10, 1], [10, 4], [13, 1], [13, 4]]
 };
 
-// ================= AUDIO SYNTHESIZER =================
+// ================= PREMIUM AUDIO SYNTHESIZER =================
 let audioCtx = null;
 let soundMuted = false;
 
@@ -51,27 +56,53 @@ function playSound(type) {
     if (soundMuted || !audioCtx) return;
     try {
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
         const now = audioCtx.currentTime;
 
         if (type === 'roll') {
-            osc.type = 'square'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.1); osc.frequency.exponentialRampToValueAtTime(300, now + 0.2);
-            gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2); osc.start(now); osc.stop(now + 0.2);
+            // Clack-clack sound for dice
+            for(let i=0; i<3; i++) {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(400 + Math.random()*200, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+                }, i * 100);
+            }
         } else if (type === 'move') {
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
-            gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05); osc.start(now); osc.stop(now + 0.05);
+            // Wood tick / pop sound for hopping
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'capture') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
             osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(50, now + 0.3);
-            gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35); osc.start(now); osc.stop(now + 0.35);
+            gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35); osc.start(now); osc.stop(now + 0.35);
         } else if (type === 'home') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
             osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.08); osc.frequency.setValueAtTime(1046.50, now + 0.24);
-            gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.45);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.45);
         } else if (type === 'win') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
             osc.type = 'square'; const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
             notes.forEach((freq, idx) => osc.frequency.setValueAtTime(freq, now + idx * 0.07));
-            gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.65); osc.start(now); osc.stop(now + 0.7);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.65); osc.start(now); osc.stop(now + 0.7);
         }
     } catch (e) {}
 }
@@ -113,7 +144,6 @@ if (window.Telegram && window.Telegram.WebApp) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Show Real TG Name on UI
     document.getElementById("profile-name").innerText = userName;
     document.getElementById("profile-status").innerText = userUsername ? `@${userUsername}` : "Telegram Player";
     
@@ -415,7 +445,9 @@ function getTrackCell(color, steps) { return (START_TRACK_INDICES[color] + steps
 // ================= MULTIPLAYER SOCKETS =================
 function createMultiplayerRoom() {
     gameMode = 'multiplayer';
-    fetch("/api/room/create", { method: "POST" })
+    // Use proper BACKEND_DOMAIN for fetch
+    const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+    fetch(`${protocol}//${BACKEND_DOMAIN}/api/room/create`, { method: "POST" })
         .then(res => res.json()).then(data => { roomCode = data.room_id; connectWebSocket(roomCode); })
         .catch(() => connectWebSocket("CREATE"));
 }
@@ -428,13 +460,13 @@ function joinMultiplayerRoom() {
 
 function connectWebSocket(room) {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host || "localhost:8000";
-    socket = new WebSocket(`${protocol}//${host}/ws`);
+    // FIX: Using Explicit Backend Domain rather than frontend host!
+    socket = new WebSocket(`${protocol}//${BACKEND_DOMAIN}/ws`);
     
-    showToast("Connecting...");
+    showToast("Connecting to Game Server...");
     socket.onopen = () => { socket.send(JSON.stringify({ type: "join_lobby", room_id: room, user_id: userId, name: userName, username: userUsername })); };
     socket.onmessage = (event) => handleServerMessage(JSON.parse(event.data));
-    socket.onerror = () => showToast("Server connection error.");
+    socket.onerror = () => showToast("Server connection error. Check backend!");
     socket.onclose = () => { if (gameStarted && !standings.includes(myColor)) setTimeout(() => connectWebSocket(roomCode), 3000); };
 }
 
@@ -542,14 +574,23 @@ function renderPawns() {
     });
 }
 
+// FIX: Hopping Animation for moving pawns
 function animatePawnMovement(color, pawnIdx, stepsCount) {
     return new Promise(async (resolve) => {
         if (pawns[color][pawnIdx] === 0) { playSound('move'); pawns[color][pawnIdx] = 1; renderPawns(); resolve(); return; }
         
         for (let s = 1; s <= stepsCount; s++) {
-            pawns[color][pawnIdx]++; playSound('move'); renderPawns();
-            const el = document.getElementById(`pawn-${color}-${pawnIdx}`); if (el) el.style.transform = "scale(1.2)";
-            await new Promise(r => setTimeout(r, 140));
+            // Apply hopping class visually before moving
+            const el = document.getElementById(`pawn-${color}-${pawnIdx}`);
+            if (el) el.classList.add('hopping');
+            playSound('move');
+            
+            await new Promise(r => setTimeout(r, 120)); // wait for jump peak
+            
+            pawns[color][pawnIdx]++; 
+            renderPawns(); // re-renders at new spot
+            
+            await new Promise(r => setTimeout(r, 100)); // wait to settle
         }
         resolve();
     });
@@ -715,9 +756,11 @@ function shareResultsToTelegram() {
             mappedStandings.push({ user_id: 9999, name: name, username: "", color: color });
         });
 
+        // Send back to Render Backend URL properly
+        const protocol = window.location.protocol === "https:" ? "https:" : "http:";
         const payload = { chat_id: chatId, room_id: roomCode, image_base64: base64Img, standings: mappedStandings };
 
-        fetch("/api/share-results", {
+        fetch(`${protocol}//${BACKEND_DOMAIN}/api/share-results`, {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
         }).then(res => res.json()).then(data => {
             if (tg) setTimeout(() => tg.close(), 1500);
