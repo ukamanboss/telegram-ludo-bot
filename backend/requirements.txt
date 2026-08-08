@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+websockets
+python-telegram-bot
+httpx
+jinja2
+pydantic
