@@ -24,9 +24,7 @@ const HOME_CORRIDORS = {
     Yellow: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]],
     Blue:   [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]]
 };
-
 const HOME_CENTERS = { Red: [7, 6], Green: [6, 7], Yellow: [7, 8], Blue: [8, 7] };
-
 const BASE_POCKETS = {
     Red:    [[1, 1], [1, 4], [4, 1], [4, 4]],
     Green:  [[1, 10], [1, 13], [4, 10], [4, 13]],
@@ -38,7 +36,6 @@ const BASE_POCKETS = {
 let audioCtx = null;
 let soundMuted = false;
 
-// FIX: Audio Context must be initialized on first user interaction
 function initAudio() {
     if (soundMuted) return;
     try {
@@ -60,21 +57,21 @@ function playSound(type) {
         const now = audioCtx.currentTime;
 
         if (type === 'roll') {
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(500, now + 0.1); osc.frequency.exponentialRampToValueAtTime(250, now + 0.25);
-            gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25); osc.start(now); osc.stop(now + 0.25);
+            osc.type = 'square'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.1); osc.frequency.exponentialRampToValueAtTime(300, now + 0.2);
+            gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2); osc.start(now); osc.stop(now + 0.2);
         } else if (type === 'move') {
-            osc.type = 'sine'; osc.frequency.setValueAtTime(380, now); osc.frequency.exponentialRampToValueAtTime(760, now + 0.08);
-            gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1);
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
+            gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05); osc.start(now); osc.stop(now + 0.05);
         } else if (type === 'capture') {
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(280, now); osc.frequency.linearRampToValueAtTime(70, now + 0.35);
-            gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.4);
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(50, now + 0.3);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35); osc.start(now); osc.stop(now + 0.35);
         } else if (type === 'home') {
             osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.08); osc.frequency.setValueAtTime(1046.50, now + 0.24);
-            gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.45);
+            gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.45);
         } else if (type === 'win') {
             osc.type = 'square'; const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
             notes.forEach((freq, idx) => osc.frequency.setValueAtTime(freq, now + idx * 0.07));
-            gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.65); osc.start(now); osc.stop(now + 0.7);
+            gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.65); osc.start(now); osc.stop(now + 0.7);
         }
     } catch (e) {}
 }
@@ -102,16 +99,21 @@ let validMoves = [];
 let standings = [];
 let consecutiveSixes = 0;
 
+// FETCH TELEGRAM USER DETAILS
 if (window.Telegram && window.Telegram.WebApp) {
     tg = window.Telegram.WebApp;
-    tg.ready(); tg.expand();
+    tg.ready(); 
+    tg.expand();
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         const u = tg.initDataUnsafe.user;
-        userId = u.id; userName = u.first_name + (u.last_name ? " " + u.last_name : ""); userUsername = u.username || "";
+        userId = u.id; 
+        userName = u.first_name + (u.last_name ? " " + u.last_name : ""); 
+        userUsername = u.username || "";
     }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Show Real TG Name on UI
     document.getElementById("profile-name").innerText = userName;
     document.getElementById("profile-status").innerText = userUsername ? `@${userUsername}` : "Telegram Player";
     
@@ -288,18 +290,15 @@ function clearPawnHighlights() {
     });
 }
 
-// FIX APP BUG: Capturing logic to prevent double moving
 async function localMovePawnAction(pawnIdx) {
     if (currentTurn !== myColor || !diceRolled || !validMoves.includes(pawnIdx)) return;
     clearPawnHighlights();
     
-    // Capture state before animation alters it!
     const oldSteps = pawns[currentTurn][pawnIdx];
     const newSteps = oldSteps === 0 ? 1 : oldSteps + diceValue;
     
     await animatePawnMovement(currentTurn, pawnIdx, diceValue);
     
-    // Evaluate conditions using newSteps
     let pawnFinished = (newSteps === 57);
     if (pawnFinished) {
         playSound('home');
@@ -351,16 +350,13 @@ function localPassTurn() {
     if (currentTurn !== myColor) setTimeout(localRollDice, 1200);
 }
 
-// FIX: Same double-movement bug fixed for AI
 async function localAIMove() {
     if (currentTurn === myColor || !diceRolled || validMoves.length === 0) return;
     
-    let chosenIdx = validMoves[0];
-    let bestScore = -100;
+    let chosenIdx = validMoves[0]; let bestScore = -100;
     
     for (const idx of validMoves) {
-        const steps = pawns[currentTurn][idx];
-        let score = steps;
+        const steps = pawns[currentTurn][idx]; let score = steps;
         if (steps === 0) score += 50;
         const potentialSteps = steps + diceValue;
         if (potentialSteps === 57) score += 100;
@@ -487,9 +483,9 @@ function handleServerMessage(data) {
         }
         else if (data.event === "pawn_moved") {
             clearPawnHighlights();
-            pawns[data.player][data.pawn_idx] = data.old_steps; // temporary revert for animation visually
+            pawns[data.player][data.pawn_idx] = data.old_steps; 
             animatePawnMovement(data.player, data.pawn_idx, data.roll).then(() => {
-                pawns = data.game_state.pawns; // restore state
+                pawns = data.game_state.pawns; 
                 if (data.captured) { playSound('capture'); showToast(`${data.player} captured ${data.captured.color}!`); }
                 if (data.pawn_finished) playSound('home');
                 renderPawns(); updateGameUI();
@@ -553,7 +549,7 @@ function animatePawnMovement(color, pawnIdx, stepsCount) {
         for (let s = 1; s <= stepsCount; s++) {
             pawns[color][pawnIdx]++; playSound('move'); renderPawns();
             const el = document.getElementById(`pawn-${color}-${pawnIdx}`); if (el) el.style.transform = "scale(1.2)";
-            await new Promise(r => setTimeout(r, 150));
+            await new Promise(r => setTimeout(r, 140));
         }
         resolve();
     });
@@ -583,23 +579,158 @@ function updateGameUI() {
     }
 }
 
-// ================= SHARE & EXTRAS =================
+// ================= RESULTS CERTIFICATE & SHARE =================
 function triggerGameOver(remoteStandings = null) {
-    gameStarted = false; document.getElementById("game-view").classList.add("hidden"); document.getElementById("game-over-view").classList.remove("hidden"); playSound('win');
-    const cont = document.getElementById("standings-container"); cont.innerHTML = "";
+    gameStarted = false; 
+    document.getElementById("game-view").classList.add("hidden"); 
+    document.getElementById("game-over-view").classList.remove("hidden"); 
+    playSound('win');
+    
+    const cont = document.getElementById("standings-container"); 
+    cont.innerHTML = "";
     
     let stList = remoteStandings || standings.map(color => lobbyPlayers.find(pl => pl.color === color)).filter(Boolean);
     const medals = ["🥇 1st Place", "🥈 2nd Place", "🥉 3rd Place", "🎖️ 4th Place"];
     
     stList.forEach((p, idx) => {
-        cont.innerHTML += `<div class="standing-row rank-${idx + 1}"><div class="player-info"><span class="color-dot color-${p.color.toLowerCase()}"></span><span>${p.name}</span></div><span class="standing-medal">${medals[idx]||"🎖️ Finished"}</span></div>`;
+        cont.innerHTML += `<div class="standing-row rank-${idx + 1}">
+            <div class="player-info">
+                <span class="color-dot color-${p.color.toLowerCase()}"></span>
+                <span>${p.name}</span>
+            </div>
+            <span class="standing-medal">${medals[idx]||"🎖️ Finished"}</span>
+        </div>`;
     });
+
+    generateResultsCertificate(stList);
 }
 
-function shareResultsToTelegram() { showToast("Sending results to Telegram group..."); setTimeout(()=> { if (tg) tg.close(); }, 1500); }
+function generateResultsCertificate(standingsList) {
+    const canvas = document.getElementById("results-canvas");
+    const ctx = canvas.getContext("2d");
+    document.getElementById("result-canvas-container").classList.remove("hidden");
+
+    // 1. Draw rich background gradient
+    const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    grad.addColorStop(0, "#0f0f23");
+    grad.addColorStop(1, "#17173a");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 2. Draw border lines
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "#ffb900"; 
+    ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+    
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.strokeRect(16, 16, canvas.width - 32, canvas.height - 32);
+
+    // 3. Draw heading
+    ctx.font = "bold 26px 'Outfit', sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.fillText("LUDO ROYALE CHAMPIONS", canvas.width / 2, 50);
+
+    ctx.font = "14px 'Outfit', sans-serif";
+    ctx.fillStyle = "#ffb900";
+    ctx.fillText("OFFICIAL MATCH STANDINGS REPORT", canvas.width / 2, 75);
+
+    // 4. Draw Divider Line
+    ctx.beginPath();
+    ctx.moveTo(100, 95);
+    ctx.lineTo(canvas.width - 100, 95);
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.stroke();
+
+    // 5. Draw Standings
+    const medals = ["🥇 1ST", "🥈 2ND", "🥉 3RD", "🎖️ 4TH"];
+    const colorsGradients = {
+        Red:    ["#ff4d6d", "#ff2a4b"],
+        Green:  ["#2ec4b6", "#209f8f"],
+        Yellow: ["#ffb703", "#e89600"],
+        Blue:   ["#0077b6", "#005f9e"]
+    };
+
+    standingsList.forEach((player, idx) => {
+        const yOffset = 130 + idx * 60;
+        
+        ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
+        ctx.fillRect(40, yOffset - 25, canvas.width - 80, 46);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.strokeRect(40, yOffset - 25, canvas.width - 80, 46);
+
+        ctx.font = "bold 16px 'Outfit', sans-serif";
+        ctx.fillStyle = idx === 0 ? "#ffb900" : "#ffffff";
+        ctx.textAlign = "left";
+        ctx.fillText(medals[idx] || "FINISH", 60, yOffset + 4);
+
+        const circleGrad = ctx.createRadialGradient(200, yOffset, 2, 200, yOffset, 8);
+        const colGrad = colorsGradients[player.color] || ["#ffffff", "#cccccc"];
+        circleGrad.addColorStop(0, colGrad[0]);
+        circleGrad.addColorStop(1, colGrad[1]);
+        ctx.beginPath();
+        ctx.arc(200, yOffset, 8, 0, Math.PI * 2);
+        ctx.fillStyle = circleGrad;
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+
+        ctx.font = "bold 16px 'Outfit', sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(player.name.substring(0, 20), 225, yOffset + 4);
+
+        ctx.font = "italic 13px 'Outfit', sans-serif";
+        ctx.fillStyle = colGrad[0];
+        ctx.textAlign = "right";
+        ctx.fillText(player.color, canvas.width - 60, yOffset + 4);
+    });
+
+    // 6. Draw Footer
+    ctx.font = "10px 'Outfit', sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.textAlign = "center";
+    ctx.fillText("Generated in Telegram Mini App. Room Ref: " + roomCode, canvas.width / 2, canvas.height - 30);
+}
+
+function shareResultsToTelegram() { 
+    showToast("Sending results to Telegram group..."); 
+    
+    if (chatId) {
+        const canvas = document.getElementById("results-canvas");
+        const base64Img = canvas.toDataURL("image/png");
+        
+        const mappedStandings = [];
+        const resultsRows = document.querySelectorAll(".standing-row");
+        resultsRows.forEach((row) => {
+            const name = row.querySelector(".player-info span:nth-child(2)").innerText;
+            const colorDot = row.querySelector(".player-info span:nth-child(1)");
+            let color = "Red";
+            if (colorDot.classList.contains("color-green")) color = "Green";
+            else if (colorDot.classList.contains("color-yellow")) color = "Yellow";
+            else if (colorDot.classList.contains("color-blue")) color = "Blue";
+            
+            mappedStandings.push({ user_id: 9999, name: name, username: "", color: color });
+        });
+
+        const payload = { chat_id: chatId, room_id: roomCode, image_base64: base64Img, standings: mappedStandings };
+
+        fetch("/api/share-results", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+        }).then(res => res.json()).then(data => {
+            if (tg) setTimeout(() => tg.close(), 1500);
+        }).catch(err => showToast("Failed to share."));
+    } else {
+        setTimeout(()=> { if (tg) tg.close(); }, 1500);
+    }
+}
+
 function copyRoomCode() { if (roomCode) navigator.clipboard.writeText(roomCode).then(() => showToast("Copied!")); }
 function inviteFriends() { if (tg) tg.openTelegramLink(`https://t.me/share/url?url=https://t.me/ludo_game_bot/app?startapp=${roomCode}&text=Join%20My%20Room`); }
 function leaveLobby() { quitGameToHome(); }
+
 function quitGameToHome() {
     if (socket) { socket.close(); socket = null; }
     gameStarted = false; roomCode = ""; isHost = false; lobbyPlayers = []; standings = []; clearPawnHighlights();
@@ -610,7 +741,7 @@ function quitGameToHome() {
 function showToast(msg) {
     if (tg && tg.showNotification) { try { tg.showNotification(msg); return; } catch(e){} }
     let toast = document.getElementById("t-toast") || document.createElement("div");
-    toast.id = "t-toast"; toast.style = "position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 24px;border-radius:20px;font-size:0.95rem;z-index:9999;font-weight:600;box-shadow:0 10px 20px rgba(0,0,0,0.5);";
+    toast.id = "t-toast"; toast.style = "position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:12px 24px;border-radius:20px;font-size:0.95rem;z-index:9999;font-weight:600;box-shadow:0 10px 20px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);";
     toast.innerText = msg; document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2500);
 }
