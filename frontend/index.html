@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ludo Royale - Telegram Mini App</title>
+    <!-- Telegram WebApp SDK (Required to fetch TG Name) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,10 +21,11 @@
                     <span class="dice-icon">🎲</span>
                     <h1>LUDO <span class="accent-text">ROYALE</span></h1>
                 </div>
+                <!-- Player TG Profile Header -->
                 <div id="user-profile" class="glass-card">
                     <span class="avatar-fallback">👤</span>
                     <div class="user-details">
-                        <span class="user-name" id="profile-name">Loading...</span>
+                        <span class="user-name" id="profile-name">Loading Telegram Name...</span>
                         <span class="user-status" id="profile-status">Telegram Player</span>
                     </div>
                 </div>
@@ -93,24 +95,28 @@
             </div>
 
             <div class="board-wrapper">
-                <div class="board" id="ludo-board"></div>
+                <div class="board" id="ludo-board">
+                    <!-- Board cells will be injected by JavaScript -->
+                </div>
             </div>
 
             <div class="game-controls">
                 <div class="dice-wrapper">
                     <div id="dice-container" class="dice-container disabled">
                         <div id="dice-cube" class="dice">
-                            <div class="side front"><span class="dot red-dot"></span></div>
-                            <div class="side back"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-                            <div class="side right"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-                            <div class="side left"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-                            <div class="side top"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                            <div class="side front"><span class="dot"></span></div>
                             <div class="side bottom"><span class="dot"></span><span class="dot"></span></div>
+                            <div class="side left"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                            <div class="side right"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                            <div class="side top"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                            <div class="side back"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
                         </div>
                     </div>
                     <span class="dice-hint" id="dice-instructions">Tap dice to roll!</span>
                 </div>
-                <div class="players-turn-stats glass-card" id="game-players-list"></div>
+                <div class="players-turn-stats glass-card" id="game-players-list">
+                    <!-- Player stats will appear here dynamically -->
+                </div>
             </div>
         </div>
 
@@ -120,10 +126,13 @@
                 <div class="crown-banner">👑</div>
                 <h2>MATCH COMPLETED</h2>
                 <p class="subtitle">Ludo Champion Standings</p>
+                
                 <div class="standings-list" id="standings-container"></div>
+                
                 <div id="result-canvas-container" class="canvas-container hidden">
                     <canvas id="results-canvas" width="600" height="400"></canvas>
                 </div>
+                
                 <div class="results-actions">
                     <button id="btn-share-results" class="menu-btn primary-btn glow-btn"><span class="btn-icon">📤</span> Share Standings to Group</button>
                     <button id="btn-results-home" class="menu-btn secondary-btn"><span class="btn-icon">🏠</span> Back to Home</button>
