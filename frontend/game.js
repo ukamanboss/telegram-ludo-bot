@@ -1,7 +1,7 @@
 // ================= CONFIGURATION =================
 // ⚠️⚠️⚠️ AMAN BHAI: YAHAN APNE BACKEND KA RENDER URL DAAL (Bina https:// ke) ⚠️⚠️⚠️
 // Iske bina Multiplayer connect nahi hoga aur 'Server Error' aayega!
-const BACKEND_DOMAIN = "telegram-ludo-bot-backend-41s7.onrender.com"; // Example
+const BACKEND_DOMAIN = "telegram-ludo-bot-backend.onrender.com"; // Example
 
 // ================= CONSTANTS & MAPS =================
 const COLORS = ["Red", "Green", "Yellow", "Blue"];
