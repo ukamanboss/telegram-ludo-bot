@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ludo Royale - Telegram Mini App</title>
-    <!-- Telegram WebApp SDK (Required to fetch TG Name) -->
+    <title>Ludo Royale - Premium Mini App</title>
+    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +25,7 @@
                 <div id="user-profile" class="glass-card">
                     <span class="avatar-fallback">👤</span>
                     <div class="user-details">
-                        <span class="user-name" id="profile-name">Loading Telegram Name...</span>
+                        <span class="user-name" id="profile-name">Loading Profile...</span>
                         <span class="user-status" id="profile-status">Telegram Player</span>
                     </div>
                 </div>
@@ -96,7 +96,7 @@
 
             <div class="board-wrapper">
                 <div class="board" id="ludo-board">
-                    <!-- Board cells will be injected by JavaScript -->
+                    <!-- Board cells injected by JavaScript -->
                 </div>
             </div>
 
@@ -115,7 +115,7 @@
                     <span class="dice-hint" id="dice-instructions">Tap dice to roll!</span>
                 </div>
                 <div class="players-turn-stats glass-card" id="game-players-list">
-                    <!-- Player stats will appear here dynamically -->
+                    <!-- Player stats -->
                 </div>
             </div>
         </div>
