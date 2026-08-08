@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 websockets
-python-telegram-bot
+pyTelegramBotAPI
 httpx
 jinja2
 pydantic
