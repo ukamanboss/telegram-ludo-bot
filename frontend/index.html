@@ -1,146 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ludo Royale - Premium Mini App</title>
-    <!-- Telegram WebApp SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Miku Ludo Royale</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div id="app-container">
-        
-        <!-- ================= LOBBY VIEW ================= -->
-        <div id="lobby-view" class="view">
-            <div class="header-section">
-                <div class="logo">
-                    <span class="dice-icon">🎲</span>
-                    <h1>LUDO <span class="accent-text">ROYALE</span></h1>
-                </div>
-                <!-- Player TG Profile Header -->
-                <div id="user-profile" class="glass-card">
-                    <span class="avatar-fallback">👤</span>
-                    <div class="user-details">
-                        <span class="user-name" id="profile-name">Loading Profile...</span>
-                        <span class="user-status" id="profile-status">Telegram Player</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="main-menu" id="menu-options">
-                <button id="btn-create-room" class="menu-btn primary-btn glow-btn">
-                    <span class="btn-icon">➕</span> Create Private Room
-                </button>
-                <button id="btn-join-room-trigger" class="menu-btn secondary-btn">
-                    <span class="btn-icon">🔑</span> Join Room via Token
-                </button>
-                <button id="btn-local-play" class="menu-btn accent-btn">
-                    <span class="btn-icon">🤖</span> Play VS Bot (Offline)
-                </button>
-            </div>
-
-            <!-- Join Modal -->
-            <div id="join-modal" class="modal hidden">
-                <div class="modal-content glass-card">
-                    <h2>Join Ludo Room</h2>
-                    <p>Enter the 6-digit room code to join your friends:</p>
-                    <input type="number" id="room-code-input" placeholder="e.g., 123456" pattern="\d{6}" maxlength="6">
-                    <div class="modal-actions">
-                        <button id="btn-cancel-join" class="btn small-btn cancel-btn">Cancel</button>
-                        <button id="btn-confirm-join" class="btn small-btn confirm-btn">Join</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Room Lobby Waiting -->
-            <div id="room-lobby" class="glass-card hidden">
-                <div class="lobby-header">
-                    <h2>Lobby Room</h2>
-                    <div class="room-code-badge">
-                        <span>Code: </span>
-                        <span id="lobby-code-val">------</span>
-                        <button id="btn-copy-code" class="icon-btn" title="Copy Code">📋</button>
-                    </div>
-                </div>
-                <div class="lobby-players">
-                    <h3>Players Joined (<span id="player-count">0</span>/4)</h3>
-                    <div class="player-slots" id="slots-container">
-                        <div class="player-slot empty" id="slot-0"><span class="slot-status">Waiting for Host...</span></div>
-                        <div class="player-slot empty" id="slot-1"><span class="slot-status">Waiting for Player...</span></div>
-                        <div class="player-slot empty" id="slot-2"><span class="slot-status">Waiting for Player...</span></div>
-                        <div class="player-slot empty" id="slot-3"><span class="slot-status">Waiting for Player...</span></div>
-                    </div>
-                </div>
-                <div class="lobby-actions">
-                    <button id="btn-invite-friends" class="menu-btn secondary-btn"><span class="btn-icon">✉️</span> Invite Friends</button>
-                    <button id="btn-start-game" class="menu-btn primary-btn glow-btn" disabled><span class="btn-icon">🚀</span> Start Match</button>
-                    <button id="btn-leave-lobby" class="btn text-btn text-danger">Leave Room</button>
-                </div>
-            </div>
+  <div class="app-shell">
+    <!-- Top Header Bar -->
+    <header class="top-bar">
+      <div class="brand-box">
+        <span class="brand-logo">🎲</span>
+        <div>
+          <h1 class="brand-title">MIKU LUDO ROYALE</h1>
+          <div class="room-pill">
+            <span id="connDot" class="conn-dot offline"></span>
+            <span id="connText">Connecting...</span>
+            <span class="divider">•</span>
+            <span>Room: <strong id="roomCodeLabel">----</strong></span>
+          </div>
         </div>
+      </div>
 
-        <!-- ================= GAMEPLAY VIEW ================= -->
-        <div id="game-view" class="view hidden">
-            <div class="game-header">
-                <button id="btn-game-back" class="icon-btn-round" title="Quit Game">◀</button>
-                <div class="turn-indicator-card glass-card">
-                    <span id="turn-color-indicator" class="color-dot color-red"></span>
-                    <span id="turn-text-val">Red's Turn</span>
-                </div>
-                <button id="btn-mute-toggle" class="icon-btn-round" title="Toggle Sound">🔊</button>
-            </div>
+      <div class="top-actions">
+        <button id="soundToggleBtn" class="icon-btn" title="Toggle Sound">🔊</button>
+        <button id="addBotBtn" class="action-chip" title="Add AI Bot">+ 🤖 Bot</button>
+        <button id="startMatchBtn" class="action-chip primary-chip">▶ Start</button>
+      </div>
+    </header>
 
-            <div class="board-wrapper">
-                <div class="board" id="ludo-board">
-                    <!-- Board cells injected by JavaScript -->
-                </div>
-            </div>
-
-            <div class="game-controls">
-                <div class="dice-wrapper">
-                    <div id="dice-container" class="dice-container disabled">
-                        <div id="dice-cube" class="dice">
-                            <div class="side front"><span class="dot"></span></div>
-                            <div class="side bottom"><span class="dot"></span><span class="dot"></span></div>
-                            <div class="side left"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-                            <div class="side right"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-                            <div class="side top"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-                            <div class="side back"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-                        </div>
-                    </div>
-                    <span class="dice-hint" id="dice-instructions">Tap dice to roll!</span>
-                </div>
-                <div class="players-turn-stats glass-card" id="game-players-list">
-                    <!-- Player stats -->
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= GAME OVER VIEW ================= -->
-        <div id="game-over-view" class="view hidden">
-            <div class="results-card glass-card">
-                <div class="crown-banner">👑</div>
-                <h2>MATCH COMPLETED</h2>
-                <p class="subtitle">Ludo Champion Standings</p>
-                
-                <div class="standings-list" id="standings-container"></div>
-                
-                <div id="result-canvas-container" class="canvas-container hidden">
-                    <canvas id="results-canvas" width="600" height="400"></canvas>
-                </div>
-                
-                <div class="results-actions">
-                    <button id="btn-share-results" class="menu-btn primary-btn glow-btn"><span class="btn-icon">📤</span> Share Standings to Group</button>
-                    <button id="btn-results-home" class="menu-btn secondary-btn"><span class="btn-icon">🏠</span> Back to Home</button>
-                </div>
-            </div>
-        </div>
-
+    <!-- Live Event Banner -->
+    <div id="eventBanner" class="event-banner">
+      ✨ Room ready! Doston ko join karao ya '+ 🤖 Bot' daba kar match start karo!
     </div>
-    <script src="game.js"></script>
+
+    <!-- Top Player Cards (Red & Green) -->
+    <div class="player-row">
+      <div id="card-red" class="player-card card-red">
+        <div class="p-avatar" id="avatar-red">🔴</div>
+        <div class="p-info">
+          <div class="p-name" id="name-red">Waiting...</div>
+          <div class="p-sub" id="sub-red">Red Yard</div>
+        </div>
+        <div class="p-score" id="score-red">0/4</div>
+      </div>
+
+      <div id="card-green" class="player-card card-green">
+        <div class="p-avatar" id="avatar-green">🟢</div>
+        <div class="p-info">
+          <div class="p-name" id="name-green">Waiting...</div>
+          <div class="p-sub" id="sub-green">Green Yard</div>
+        </div>
+        <div class="p-score" id="score-green">0/4</div>
+      </div>
+    </div>
+
+    <!-- Center 15x15 Ludo Board Canvas -->
+    <div class="board-wrapper">
+      <canvas id="ludoCanvas" width="600" height="600"></canvas>
+      <div id="floatingEmojiLayer" class="floating-emoji-layer"></div>
+    </div>
+
+    <!-- Bottom Player Cards (Blue & Yellow) -->
+    <div class="player-row">
+      <div id="card-blue" class="player-card card-blue">
+        <div class="p-avatar" id="avatar-blue">🔵</div>
+        <div class="p-info">
+          <div class="p-name" id="name-blue">Waiting...</div>
+          <div class="p-sub" id="sub-blue">Blue Yard</div>
+        </div>
+        <div class="p-score" id="score-blue">0/4</div>
+      </div>
+
+      <div id="card-yellow" class="player-card card-yellow">
+        <div class="p-avatar" id="avatar-yellow">🟡</div>
+        <div class="p-info">
+          <div class="p-name" id="name-yellow">Waiting...</div>
+          <div class="p-sub" id="sub-yellow">Yellow Yard</div>
+        </div>
+        <div class="p-score" id="score-yellow">0/4</div>
+      </div>
+    </div>
+
+    <!-- Bottom Dice Dock & Quick Emoji Bar -->
+    <footer class="bottom-dock">
+      <div class="emoji-bar">
+        <button class="emoji-btn" data-emoji="😂">😂</button>
+        <button class="emoji-btn" data-emoji="🔥">🔥</button>
+        <button class="emoji-btn" data-emoji="😭">😭</button>
+        <button class="emoji-btn" data-emoji="👑">👑</button>
+      </div>
+
+      <button id="diceBtn" class="dice-dock-btn">
+        <div id="diceCube" class="dice-cube" data-val="6">
+          <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+          <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+          <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+        </div>
+        <div class="dice-caption" id="diceCaption">ROLL DICE</div>
+      </button>
+
+      <div class="emoji-bar">
+        <button class="emoji-btn" data-emoji="⚡">⚡</button>
+        <button class="emoji-btn" data-emoji="👏">👏</button>
+        <button class="emoji-btn" data-emoji="💀">💀</button>
+        <button id="resetBtn" class="emoji-btn" title="Reset Board">🔄</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Winner Celebration Modal -->
+  <div id="winnerModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="trophy-icon">🏆</div>
+      <h2 id="winnerTitle">VICTORY!</h2>
+      <p id="winnerSubtitle">Player won the Ludo Royale match!</p>
+      <div class="modal-actions">
+        <button id="playAgainBtn" class="modal-btn primary">🔄 Play Again</button>
+        <button id="shareResultBtn" class="modal-btn secondary">📤 Share to Chat</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
 </body>
 </html>
