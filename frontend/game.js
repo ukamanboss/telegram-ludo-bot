@@ -1,7 +1,7 @@
 /**
  * Miku Game Hub — Home Screen (Play with Miku / Play with Friends, Ludo & Chess),
- * Top-Right Telegram User Profile (Name + ID), Real-Time WebSocket Sync,
- * and Web Audio API Sound Effects.
+ * Real Telegram Profile Photos (PFP) in Top-Right Badge & Player Cards,
+ * Real-Time WebSocket Sync, and Web Audio API Sound Effects.
  */
 
 const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
@@ -128,7 +128,7 @@ class SoundEngine {
 const sfx = new SoundEngine();
 
 // ---------------------------------------------------------------------------
-// 2. Player Telegram Identity & Top-Right Profile Display
+// 2. Player Telegram Identity & Real PFP Loader
 // ---------------------------------------------------------------------------
 const urlParams = new URLSearchParams(window.location.search);
 const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
@@ -143,6 +143,7 @@ const MY_NAME =
   urlParams.get("name") ||
   (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : "Player");
 const MY_USERNAME = urlParams.get("username") || (tgUser && tgUser.username) || "";
+const MY_TG_PHOTO = (tgUser && tgUser.photo_url) || "";
 
 let ROOM_ID = (urlParams.get("room") || `MK${MY_USER_ID % 10000}`).toUpperCase();
 const BACKEND_PARAM = (urlParams.get("backend") || localStorage.getItem("miku_ludo_backend") || "").replace(/\/$/, "");
@@ -151,10 +152,70 @@ if (BACKEND_PARAM) {
 }
 const CHESS_FRONTEND_URL = (urlParams.get("chess_url") || "https://tg-chess-bot-frontend.onrender.com").replace(/\/$/, "");
 
-// Populate Top-Right Player Telegram Name & ID
+/**
+ * Build candidate PFP URLs for a given Telegram user and render an <img> inside containerEl.
+ * Gracefully falls back to fallbackText (Initial or Emoji) if the user hides their DP.
+ */
+function renderTelegramAvatar(containerEl, userId, username, fallbackText, directPhotoUrl = "") {
+  if (!containerEl) return;
+
+  const uid = Number(userId || 0);
+  const uname = String(username || "").replace(/^@/, "").trim();
+  const isAiBot = uid >= 900000 && uid <= 999999;
+
+  if (isAiBot || uid <= 0) {
+    containerEl.dataset.avatarKey = `fallback:${fallbackText}`;
+    containerEl.textContent = fallbackText;
+    return;
+  }
+
+  const candidates = [];
+  if (directPhotoUrl) candidates.push(directPhotoUrl);
+  if (BACKEND_PARAM) candidates.push(`${BACKEND_PARAM}/api/avatar/${uid}`);
+  if (uname) candidates.push(`https://t.me/i/userpic/320/${uname}.jpg`);
+
+  const cacheKey = `${uid}:${candidates[0] || fallbackText}`;
+  if (containerEl.dataset.avatarKey === cacheKey) {
+    return;
+  }
+  containerEl.dataset.avatarKey = cacheKey;
+
+  if (candidates.length === 0) {
+    containerEl.textContent = fallbackText;
+    return;
+  }
+
+  const img = document.createElement("img");
+  img.className = "avatar-img";
+  img.alt = fallbackText;
+  let tryIndex = 0;
+
+  img.onerror = () => {
+    tryIndex += 1;
+    if (tryIndex < candidates.length) {
+      img.src = candidates[tryIndex];
+    } else {
+      containerEl.innerHTML = "";
+      containerEl.textContent = fallbackText;
+    }
+  };
+
+  img.src = candidates[0];
+  containerEl.innerHTML = "";
+  containerEl.appendChild(img);
+}
+
+// Populate Top-Right Player Telegram Name, ID & Real PFP
 document.getElementById("tgUserName").textContent = MY_NAME;
 document.getElementById("tgUserId").textContent = `ID: ${MY_USER_ID}`;
-document.getElementById("tgUserInitial").textContent = (MY_NAME.trim()[0] || "M").toUpperCase();
+renderTelegramAvatar(
+  document.getElementById("tgUserInitial"),
+  MY_USER_ID,
+  MY_USERNAME,
+  (MY_NAME.trim()[0] || "M").toUpperCase(),
+  MY_TG_PHOTO
+);
+
 document.getElementById("homeRoomBadge").textContent = ROOM_ID;
 document.getElementById("roomCodeLabel").textContent = ROOM_ID;
 
@@ -188,7 +249,6 @@ document.getElementById("homeFromModalBtn").addEventListener("click", () => {
   showHomeScreen();
 });
 
-// AI Bot Count Selector Pills (1v1 Miku vs 4-Player AI)
 document.querySelectorAll(".ai-pill").forEach((pill) => {
   pill.addEventListener("click", () => {
     document.querySelectorAll(".ai-pill").forEach((p) => p.classList.remove("active"));
@@ -198,7 +258,6 @@ document.querySelectorAll(".ai-pill").forEach((pill) => {
   });
 });
 
-// Apply Custom Room Code on Home Screen
 document.getElementById("applyRoomBtn").addEventListener("click", () => {
   const inputVal = document.getElementById("customRoomInput").value.trim().toUpperCase();
   if (!inputVal) return;
@@ -209,13 +268,11 @@ document.getElementById("applyRoomBtn").addEventListener("click", () => {
   connectWebSocket();
 });
 
-// Button 1: Play Ludo with Miku (AI Mode)
 document.getElementById("btnLudoMiku").addEventListener("click", () => {
   showGameScreen();
   startPlayWithMikuMatch(selectedAiBotCount);
 });
 
-// Button 2: Play Ludo with Friends (Multiplayer Room)
 document.getElementById("btnLudoFriends").addEventListener("click", () => {
   const customInput = document.getElementById("customRoomInput").value.trim().toUpperCase();
   if (customInput) {
@@ -227,7 +284,6 @@ document.getElementById("btnLudoFriends").addEventListener("click", () => {
   connectWebSocket();
 });
 
-// Button 3 & 4: Launch Chess Royale (with Miku AI or with Friends)
 function launchChessFrontend(mode) {
   sfx.playOpen();
   const params = new URLSearchParams({
@@ -250,6 +306,7 @@ document.getElementById("btnChessFriends").addEventListener("click", () => launc
 // 4. 15x15 Ludo Board Coordinate Geometry
 // ---------------------------------------------------------------------------
 const COLORS = ["red", "green", "yellow", "blue"];
+const COLOR_EMOJI = { red: "🔴", green: "🟢", yellow: "🟡", blue: "🔵" };
 const COLOR_HEX = {
   red: "#ff3b5c",
   green: "#00d68f",
@@ -326,7 +383,7 @@ let gameState = {
   room_id: ROOM_ID,
   status: "waiting",
   players: [
-    { user_id: MY_USER_ID, name: MY_NAME, color: "red", is_ai: false },
+    { user_id: MY_USER_ID, name: MY_NAME, username: MY_USERNAME, color: "red", is_ai: false },
   ],
   tokens: {
     red: [-1, -1, -1, -1],
@@ -424,14 +481,13 @@ function setConnectionBadge(online) {
 
 function wsSend(payload) {
   if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ ...payload, user_id: MY_USER_ID, name: MY_NAME }));
+    ws.send(JSON.stringify({ ...payload, user_id: MY_USER_ID, name: MY_NAME, username: MY_USERNAME }));
     return true;
   }
   return false;
 }
 
 function startPlayWithMikuMatch(botCount = 1) {
-  // If connected to live server, reset room, add Miku bots, and start match
   if (ws && ws.readyState === WebSocket.OPEN) {
     wsSend({ action: "reset" });
     setTimeout(() => {
@@ -443,14 +499,13 @@ function startPlayWithMikuMatch(botCount = 1) {
     return;
   }
 
-  // Instant Local Miku AI Match
   COLORS.forEach((c) => {
     gameState.tokens[c] = [-1, -1, -1, -1];
     visualTokens[c] = [-1, -1, -1, -1];
   });
   const mikuNames = ["Miku AI 💙", "Nino Bot 🦋", "Yotsuba Bot 🍀"];
   gameState.players = [
-    { user_id: MY_USER_ID, name: MY_NAME, color: "red", is_ai: false },
+    { user_id: MY_USER_ID, name: MY_NAME, username: MY_USERNAME, color: "red", is_ai: false },
   ];
   for (let i = 0; i < botCount && gameState.players.length < 4; i++) {
     gameState.players.push({
@@ -643,7 +698,7 @@ async function localPlayAiTurn() {
 }
 
 // ---------------------------------------------------------------------------
-// 7. UI Synchronization & Board Renderer
+// 7. UI Synchronization (Includes Real Telegram PFP on Player Cards)
 // ---------------------------------------------------------------------------
 function animateDiceCube(val) {
   const cube = document.getElementById("diceCube");
@@ -662,6 +717,7 @@ function syncUI() {
 
   COLORS.forEach((color) => {
     const card = document.getElementById(`card-${color}`);
+    const avatarEl = document.getElementById(`avatar-${color}`);
     const nameEl = document.getElementById(`name-${color}`);
     const subEl = document.getElementById(`sub-${color}`);
     const scoreEl = document.getElementById(`score-${color}`);
@@ -682,9 +738,21 @@ function syncUI() {
           : player.is_ai
           ? "🤖 Miku AI"
           : `ID: ${player.user_id}`;
+
+      // Load Real Telegram PFP into the player's card avatar
+      renderTelegramAvatar(
+        avatarEl,
+        player.user_id,
+        player.username || "",
+        player.is_ai ? "🎧" : COLOR_EMOJI[color],
+        isMe ? MY_TG_PHOTO : ""
+      );
     } else {
       nameEl.textContent = "Empty Slot";
       subEl.textContent = "Waiting...";
+      avatarEl.dataset.avatarKey = "";
+      avatarEl.innerHTML = "";
+      avatarEl.textContent = COLOR_EMOJI[color];
     }
 
     if (gameState.status === "playing" && gameState.current_color === color) {
@@ -1046,7 +1114,6 @@ document.querySelectorAll(".emoji-btn[data-emoji]").forEach((btn) => {
   });
 });
 
-// Connect in background & start canvas loop (Starts on Home Screen by default)
 connectWebSocket();
 syncUI();
 requestAnimationFrame(renderBoard);
