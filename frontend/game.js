@@ -1,6 +1,7 @@
 /**
- * Miku Ludo Royale — Real-Time WebSocket Client, Offline AI Fallback,
- * Step-by-Step Goti Animation, and Web Audio API Sound Effects Synthesizer.
+ * Miku Game Hub — Home Screen (Play with Miku / Play with Friends, Ludo & Chess),
+ * Top-Right Telegram User Profile (Name + ID), Real-Time WebSocket Sync,
+ * and Web Audio API Sound Effects.
  */
 
 const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
@@ -10,7 +11,7 @@ if (tg) {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Web Audio API Synthesized Sound Effects Engine (Zero External MP3 Needed)
+// 1. Web Audio API Synthesized Sound Effects Engine
 // ---------------------------------------------------------------------------
 class SoundEngine {
   constructor() {
@@ -31,7 +32,7 @@ class SoundEngine {
   haptic(type = "light") {
     try {
       if (tg && tg.HapticFeedback) {
-        if (type === "error" || type === "success" || type === "warning") {
+        if (["error", "success", "warning"].includes(type)) {
           tg.HapticFeedback.notificationOccurred(type);
         } else {
           tg.HapticFeedback.impactOccurred(type);
@@ -66,7 +67,6 @@ class SoundEngine {
 
   playRoll() {
     this.haptic("light");
-    // Multi-clack tumbling dice sound
     [0, 0.055, 0.11, 0.165, 0.22].forEach((d, idx) => {
       this.tone(240 + idx * 55, 0.045, "triangle", 0.16, d, 120);
     });
@@ -82,13 +82,11 @@ class SoundEngine {
 
   playStep() {
     this.haptic("light");
-    // Crisp wooden board hop sound
     this.tone(380, 0.065, "sine", 0.2, 0, 620);
   }
 
   playOpen() {
     this.haptic("medium");
-    // Magical rising chime when goti exits base on 6
     this.tone(440, 0.1, "sine", 0.2, 0);
     this.tone(587.33, 0.12, "sine", 0.22, 0.08);
     this.tone(880, 0.24, "triangle", 0.25, 0.16);
@@ -96,7 +94,6 @@ class SoundEngine {
 
   playCapture() {
     this.haptic("heavy");
-    // Dramatic anime slash + bass impact when cutting opponent goti
     this.tone(720, 0.18, "sawtooth", 0.24, 0, 110);
     this.tone(140, 0.32, "square", 0.28, 0.12, 48);
   }
@@ -131,7 +128,126 @@ class SoundEngine {
 const sfx = new SoundEngine();
 
 // ---------------------------------------------------------------------------
-// 2. 15x15 Ludo Board Coordinate Geometry
+// 2. Player Telegram Identity & Top-Right Profile Display
+// ---------------------------------------------------------------------------
+const urlParams = new URLSearchParams(window.location.search);
+const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+
+const MY_USER_ID = Number(
+  urlParams.get("user_id") ||
+  urlParams.get("userId") ||
+  (tgUser && tgUser.id) ||
+  Math.floor(100000 + Math.random() * 899999)
+);
+const MY_NAME =
+  urlParams.get("name") ||
+  (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : "Player");
+const MY_USERNAME = urlParams.get("username") || (tgUser && tgUser.username) || "";
+
+let ROOM_ID = (urlParams.get("room") || `MK${MY_USER_ID % 10000}`).toUpperCase();
+const BACKEND_PARAM = (urlParams.get("backend") || localStorage.getItem("miku_ludo_backend") || "").replace(/\/$/, "");
+if (BACKEND_PARAM) {
+  localStorage.setItem("miku_ludo_backend", BACKEND_PARAM);
+}
+const CHESS_FRONTEND_URL = (urlParams.get("chess_url") || "https://tg-chess-bot-frontend.onrender.com").replace(/\/$/, "");
+
+// Populate Top-Right Player Telegram Name & ID
+document.getElementById("tgUserName").textContent = MY_NAME;
+document.getElementById("tgUserId").textContent = `ID: ${MY_USER_ID}`;
+document.getElementById("tgUserInitial").textContent = (MY_NAME.trim()[0] || "M").toUpperCase();
+document.getElementById("homeRoomBadge").textContent = ROOM_ID;
+document.getElementById("roomCodeLabel").textContent = ROOM_ID;
+
+let selectedAiBotCount = 1;
+
+// ---------------------------------------------------------------------------
+// 3. Home Screen Navigation & Game Launchers
+// ---------------------------------------------------------------------------
+const homeScreenEl = document.getElementById("homeScreen");
+const gameScreenEl = document.getElementById("gameScreen");
+const backHomeBtn = document.getElementById("backHomeBtn");
+
+function showHomeScreen() {
+  sfx.playStep();
+  homeScreenEl.classList.remove("hidden");
+  gameScreenEl.classList.add("hidden");
+  backHomeBtn.classList.add("hidden");
+}
+
+function showGameScreen() {
+  sfx.playOpen();
+  homeScreenEl.classList.add("hidden");
+  gameScreenEl.classList.remove("hidden");
+  backHomeBtn.classList.remove("hidden");
+  syncUI();
+}
+
+backHomeBtn.addEventListener("click", showHomeScreen);
+document.getElementById("homeFromModalBtn").addEventListener("click", () => {
+  document.getElementById("winnerModal").classList.add("hidden");
+  showHomeScreen();
+});
+
+// AI Bot Count Selector Pills (1v1 Miku vs 4-Player AI)
+document.querySelectorAll(".ai-pill").forEach((pill) => {
+  pill.addEventListener("click", () => {
+    document.querySelectorAll(".ai-pill").forEach((p) => p.classList.remove("active"));
+    pill.classList.add("active");
+    selectedAiBotCount = Number(pill.getAttribute("data-bots") || 1);
+    sfx.playStep();
+  });
+});
+
+// Apply Custom Room Code on Home Screen
+document.getElementById("applyRoomBtn").addEventListener("click", () => {
+  const inputVal = document.getElementById("customRoomInput").value.trim().toUpperCase();
+  if (!inputVal) return;
+  ROOM_ID = inputVal.replace(/[^A-Z0-9_-]/g, "").slice(0, 12) || ROOM_ID;
+  document.getElementById("homeRoomBadge").textContent = ROOM_ID;
+  document.getElementById("roomCodeLabel").textContent = ROOM_ID;
+  sfx.playOpen();
+  connectWebSocket();
+});
+
+// Button 1: Play Ludo with Miku (AI Mode)
+document.getElementById("btnLudoMiku").addEventListener("click", () => {
+  showGameScreen();
+  startPlayWithMikuMatch(selectedAiBotCount);
+});
+
+// Button 2: Play Ludo with Friends (Multiplayer Room)
+document.getElementById("btnLudoFriends").addEventListener("click", () => {
+  const customInput = document.getElementById("customRoomInput").value.trim().toUpperCase();
+  if (customInput) {
+    ROOM_ID = customInput.replace(/[^A-Z0-9_-]/g, "").slice(0, 12) || ROOM_ID;
+    document.getElementById("homeRoomBadge").textContent = ROOM_ID;
+    document.getElementById("roomCodeLabel").textContent = ROOM_ID;
+  }
+  showGameScreen();
+  connectWebSocket();
+});
+
+// Button 3 & 4: Launch Chess Royale (with Miku AI or with Friends)
+function launchChessFrontend(mode) {
+  sfx.playOpen();
+  const params = new URLSearchParams({
+    room: ROOM_ID,
+    user_id: String(MY_USER_ID),
+    name: MY_NAME,
+    username: MY_USERNAME,
+    mode: mode,
+  });
+  if (BACKEND_PARAM) {
+    params.set("backend", BACKEND_PARAM);
+  }
+  window.location.href = `${CHESS_FRONTEND_URL}/?${params.toString()}`;
+}
+
+document.getElementById("btnChessMiku").addEventListener("click", () => launchChessFrontend("ai"));
+document.getElementById("btnChessFriends").addEventListener("click", () => launchChessFrontend("friends"));
+
+// ---------------------------------------------------------------------------
+// 4. 15x15 Ludo Board Coordinate Geometry
 // ---------------------------------------------------------------------------
 const COLORS = ["red", "green", "yellow", "blue"];
 const COLOR_HEX = {
@@ -147,21 +263,16 @@ const COLOR_LIGHT = {
   blue: "#dcf0ff",
 };
 
-// 52-tile outer perimeter track coordinates [col, row] (0-indexed on 15x15 grid)
 const MAIN_TRACK_COORDS = [
-  // Red start bottom-bound row 6 -> up col 6
   [1, 6], [2, 6], [3, 6], [4, 6], [5, 6],
   [6, 5], [6, 4], [6, 3], [6, 2], [6, 1], [6, 0],
   [7, 0], [8, 0],
-  // Green start col 8 -> right row 6
   [8, 1], [8, 2], [8, 3], [8, 4], [8, 5],
   [9, 6], [10, 6], [11, 6], [12, 6], [13, 6], [14, 6],
   [14, 7], [14, 8],
-  // Yellow start row 8 -> down col 8
   [13, 8], [12, 8], [11, 8], [10, 8], [9, 8],
   [8, 9], [8, 10], [8, 11], [8, 12], [8, 13], [8, 14],
   [7, 14], [6, 14],
-  // Blue start col 6 -> left row 8
   [6, 13], [6, 12], [6, 11], [6, 10], [6, 9],
   [5, 8], [4, 8], [3, 8], [2, 8], [1, 8], [0, 8],
   [0, 7], [0, 6],
@@ -185,9 +296,7 @@ const YARD_SPOTS = {
 };
 
 function getStepGridCoord(color, step, tokenIdx) {
-  if (step === -1) {
-    return YARD_SPOTS[color][tokenIdx];
-  }
+  if (step === -1) return YARD_SPOTS[color][tokenIdx];
   if (step >= 0 && step <= 50) {
     const globalIdx = (START_OFFSETS[color] + step) % 52;
     const [c, r] = MAIN_TRACK_COORDS[globalIdx];
@@ -202,30 +311,8 @@ function getStepGridCoord(color, step, tokenIdx) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. URL Params, Identity & State Setup
+// 5. Game State, WebSocket & "Play with Miku" Launcher
 // ---------------------------------------------------------------------------
-const urlParams = new URLSearchParams(window.location.search);
-const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
-
-const MY_USER_ID = Number(
-  urlParams.get("user_id") ||
-  urlParams.get("userId") ||
-  (tgUser && tgUser.id) ||
-  Math.floor(100000 + Math.random() * 899999)
-);
-const MY_NAME =
-  urlParams.get("name") ||
-  (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") : "Player");
-const MY_USERNAME = urlParams.get("username") || (tgUser && tgUser.username) || "";
-const ROOM_ID = (urlParams.get("room") || "MKROYALE").toUpperCase();
-const BACKEND_PARAM = (urlParams.get("backend") || localStorage.getItem("miku_ludo_backend") || "").replace(/\/$/, "");
-if (BACKEND_PARAM) {
-  localStorage.setItem("miku_ludo_backend", BACKEND_PARAM);
-}
-
-document.getElementById("roomCodeLabel").textContent = ROOM_ID;
-
-// Visual interpolation map for smooth step-by-step hopping
 const visualTokens = {
   red: [-1, -1, -1, -1],
   green: [-1, -1, -1, -1],
@@ -254,12 +341,9 @@ let gameState = {
   dice_rolled: false,
   valid_moves: [],
   winner_order: [],
-  last_event: { text: "Room ready! Tap '+ 🤖 Bot' or invite friends!" },
+  last_event: { text: "Room ready! Tap '▶ Start Match' or '+ 🤖 Miku Bot'!" },
 };
 
-// ---------------------------------------------------------------------------
-// 4. WebSocket Connection + Offline Local Engine Fallback
-// ---------------------------------------------------------------------------
 let ws = null;
 let isOnlineMode = false;
 
@@ -274,9 +358,11 @@ function resolveWsUrl() {
 }
 
 function connectWebSocket() {
-  const wsUrl = resolveWsUrl();
+  if (ws) {
+    try { ws.close(); } catch (_) {}
+  }
   try {
-    ws = new WebSocket(wsUrl);
+    ws = new WebSocket(resolveWsUrl());
   } catch (e) {
     setConnectionBadge(false);
     return;
@@ -317,7 +403,6 @@ function connectWebSocket() {
   ws.onclose = () => {
     isOnlineMode = false;
     setConnectionBadge(false);
-    setTimeout(connectWebSocket, 4000);
   };
 
   ws.onerror = () => {
@@ -333,7 +418,7 @@ function setConnectionBadge(online) {
     txt.textContent = "Live Server";
   } else {
     dot.className = "conn-dot offline";
-    txt.textContent = "Local/Bot Mode";
+    txt.textContent = "AI / Local";
   }
 }
 
@@ -343,6 +428,48 @@ function wsSend(payload) {
     return true;
   }
   return false;
+}
+
+function startPlayWithMikuMatch(botCount = 1) {
+  // If connected to live server, reset room, add Miku bots, and start match
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    wsSend({ action: "reset" });
+    setTimeout(() => {
+      for (let i = 0; i < botCount; i++) {
+        wsSend({ action: "add_bot" });
+      }
+      setTimeout(() => wsSend({ action: "start_game" }), 200);
+    }, 150);
+    return;
+  }
+
+  // Instant Local Miku AI Match
+  COLORS.forEach((c) => {
+    gameState.tokens[c] = [-1, -1, -1, -1];
+    visualTokens[c] = [-1, -1, -1, -1];
+  });
+  const mikuNames = ["Miku AI 💙", "Nino Bot 🦋", "Yotsuba Bot 🍀"];
+  gameState.players = [
+    { user_id: MY_USER_ID, name: MY_NAME, color: "red", is_ai: false },
+  ];
+  for (let i = 0; i < botCount && gameState.players.length < 4; i++) {
+    gameState.players.push({
+      user_id: 900001 + i,
+      name: mikuNames[i] || `Miku Bot #${i + 1}`,
+      color: COLORS[gameState.players.length],
+      is_ai: true,
+    });
+  }
+  gameState.status = "playing";
+  gameState.turn_index = 0;
+  gameState.current_color = "red";
+  gameState.current_user_id = MY_USER_ID;
+  gameState.dice_value = null;
+  gameState.dice_rolled = false;
+  gameState.valid_moves = [];
+  gameState.winner_order = [];
+  gameState.last_event = { text: "🎧 Miku: Chalo dekhte hain kaun jeet-ta hai! Roll the dice!" };
+  syncUI();
 }
 
 function triggerSoundByName(name) {
@@ -385,7 +512,7 @@ async function applyIncomingState(newState, moveAnim) {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Local / Offline Fallback Engine (When playing without WS server)
+// 6. Local / Offline Fallback Engine
 // ---------------------------------------------------------------------------
 function localComputeValidMoves(color, dice) {
   const res = [];
@@ -429,7 +556,7 @@ async function localRollDice() {
 
   if (valid.length === 0) {
     setTimeout(() => {
-      gameState.last_event = { text: `⏭️ No moves for ${curr.name}.` };
+      gameState.last_event = { text: `⏭️ No valid moves for ${curr.name}.` };
       localAdvanceTurn();
     }, 900);
   } else if (valid.length === 1 && curr.is_ai) {
@@ -516,7 +643,7 @@ async function localPlayAiTurn() {
 }
 
 // ---------------------------------------------------------------------------
-// 6. UI Synchronization & Controls
+// 7. UI Synchronization & Board Renderer
 // ---------------------------------------------------------------------------
 function animateDiceCube(val) {
   const cube = document.getElementById("diceCube");
@@ -533,7 +660,6 @@ function syncUI() {
     banner.textContent = gameState.last_event.text;
   }
 
-  // Update 4 player cards
   COLORS.forEach((color) => {
     const card = document.getElementById(`card-${color}`);
     const nameEl = document.getElementById(`name-${color}`);
@@ -554,8 +680,8 @@ function syncUI() {
             ? "👉 Tap a Goti!"
             : "🎲 Rolling..."
           : player.is_ai
-          ? "🤖 AI Bot"
-          : "Ready";
+          ? "🤖 Miku AI"
+          : `ID: ${player.user_id}`;
     } else {
       nameEl.textContent = "Empty Slot";
       subEl.textContent = "Waiting...";
@@ -568,7 +694,6 @@ function syncUI() {
     }
   });
 
-  // Update Dice Button
   const diceBtn = document.getElementById("diceBtn");
   const diceCaption = document.getElementById("diceCaption");
   const cube = document.getElementById("diceCube");
@@ -582,7 +707,7 @@ function syncUI() {
     (!isOnlineMode || Number(gameState.current_user_id) === MY_USER_ID);
 
   if (gameState.status === "waiting") {
-    diceCaption.textContent = "PRESS START";
+    diceCaption.textContent = "START MATCH";
     diceBtn.classList.remove("my-turn-glow");
   } else if (isMyTurn && !gameState.dice_rolled) {
     diceCaption.textContent = "YOUR TURN!";
@@ -595,7 +720,6 @@ function syncUI() {
     diceBtn.classList.remove("my-turn-glow");
   }
 
-  // Winner Modal
   const modal = document.getElementById("winnerModal");
   if (gameState.status === "finished") {
     const winName =
@@ -618,9 +742,6 @@ function spawnFloatingEmoji(emoji) {
   setTimeout(() => el.remove(), 1850);
 }
 
-// ---------------------------------------------------------------------------
-// 7. 15x15 Canvas Board & Goti Renderer
-// ---------------------------------------------------------------------------
 const canvas = document.getElementById("ludoCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -645,11 +766,9 @@ function renderBoard() {
   const S = W / 15;
   ctx.clearRect(0, 0, W, W);
 
-  // 1. Base white grid
   ctx.fillStyle = "#f8fafc";
   ctx.fillRect(0, 0, W, W);
 
-  // 2. Colored Home Paths & Start Tiles
   const tintTile = (c, r, fill) => {
     ctx.fillStyle = fill;
     ctx.fillRect(c * S, r * S, S, S);
@@ -666,7 +785,6 @@ function renderBoard() {
   tintTile(13, 8, COLOR_HEX.yellow);
   tintTile(6, 13, COLOR_HEX.blue);
 
-  // 3. Draw Grid Lines for Track
   ctx.strokeStyle = "#cbd5e1";
   ctx.lineWidth = 1.2;
   for (let r = 0; r < 15; r++) {
@@ -683,7 +801,6 @@ function renderBoard() {
     }
   }
 
-  // 4. Safe Stars
   SAFE_GLOBAL_SET.forEach((gidx) => {
     const [c, r] = MAIN_TRACK_COORDS[gidx];
     const isStart = gidx === 0 || gidx === 13 || gidx === 26 || gidx === 39;
@@ -697,7 +814,6 @@ function renderBoard() {
     );
   });
 
-  // 5. Four Corner Home Yards
   const drawYard = (gx, gy, color) => {
     ctx.fillStyle = COLOR_HEX[color];
     ctx.fillRect(gx * S, gy * S, 6 * S, 6 * S);
@@ -712,7 +828,6 @@ function renderBoard() {
   drawYard(9, 9, "yellow");
   drawYard(0, 9, "blue");
 
-  // Yard Token Circles
   COLORS.forEach((color) => {
     YARD_SPOTS[color].forEach(([cx, cy]) => {
       ctx.fillStyle = COLOR_LIGHT[color];
@@ -725,7 +840,6 @@ function renderBoard() {
     });
   });
 
-  // 6. Center Home Goal Triangles
   const midX = 7.5 * S;
   const midY = 7.5 * S;
   const tri = (x1, y1, x2, y2, color) => {
@@ -745,7 +859,6 @@ function renderBoard() {
   tri(9, 6, 9, 9, "yellow");
   tri(6, 9, 9, 9, "blue");
 
-  // 7. Draw All 16 Gotis (Tokens) with Overlap Offsets & Movable Glow
   pulsePhase += 0.08;
   const posBuckets = {};
 
@@ -788,7 +901,6 @@ function renderBoard() {
         ctx.stroke();
       }
 
-      // Drop shadow & 3D Pawn Pin
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.42)";
       ctx.shadowBlur = 6;
@@ -803,7 +915,6 @@ function renderBoard() {
       ctx.stroke();
       ctx.restore();
 
-      // Inner highlight ring
       ctx.beginPath();
       ctx.arc(px, py - radius * 0.12, radius * 0.48, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255,255,255,0.45)";
@@ -815,7 +926,7 @@ function renderBoard() {
 }
 
 // ---------------------------------------------------------------------------
-// 8. User Input Event Listeners (Canvas Tap, Dice Roll, Buttons)
+// 8. Board Controls & Event Listeners
 // ---------------------------------------------------------------------------
 canvas.addEventListener("pointerdown", (e) => {
   if (gameState.status !== "playing" || !gameState.dice_rolled || isAnimatingMove) return;
@@ -868,7 +979,7 @@ document.getElementById("startMatchBtn").addEventListener("click", () => {
     if (gameState.players.length < 2) {
       gameState.players.push({
         user_id: 900001,
-        name: "Miku Bot 🌸",
+        name: "Miku AI 💙",
         color: "green",
         is_ai: true,
       });
@@ -921,14 +1032,8 @@ document.getElementById("resetBtn").addEventListener("click", () => {
 });
 
 document.getElementById("playAgainBtn").addEventListener("click", () => {
+  document.getElementById("winnerModal").classList.add("hidden");
   document.getElementById("resetBtn").click();
-});
-
-document.getElementById("shareResultBtn").addEventListener("click", () => {
-  const winName = (gameState.last_event && gameState.last_event.winner) || MY_NAME;
-  if (tg && tg.sendData) {
-    tg.sendData(JSON.stringify({ room: ROOM_ID, winner: winName }));
-  }
 });
 
 document.querySelectorAll(".emoji-btn[data-emoji]").forEach((btn) => {
@@ -941,7 +1046,7 @@ document.querySelectorAll(".emoji-btn[data-emoji]").forEach((btn) => {
   });
 });
 
-// Start WebSocket connection and render loop
+// Connect in background & start canvas loop (Starts on Home Screen by default)
 connectWebSocket();
 syncUI();
 requestAnimationFrame(renderBoard);
