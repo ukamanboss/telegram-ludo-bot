@@ -46,7 +46,7 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
-/* Top Bar & Top-Right Player TG ID Badge                             */
+/* Top Bar & Top-Right Player TG PFP + ID Badge                       */
 /* ------------------------------------------------------------------ */
 .top-bar {
   display: flex;
@@ -116,12 +116,12 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 11px;
   padding: 4px 8px;
-  max-width: 175px;
+  max-width: 185px;
 }
 
 .tg-avatar {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: linear-gradient(135deg, #ff4b8b, #6c5ce7);
   display: flex;
@@ -131,6 +131,16 @@ body {
   font-weight: 800;
   color: #fff;
   flex-shrink: 0;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .tg-user-meta {
@@ -267,7 +277,6 @@ body {
   cursor: pointer;
 }
 
-/* Game Sections (Ludo & Chess) */
 .game-section {
   background: var(--bg-card);
   border: 1.5px solid var(--border-glass);
@@ -515,8 +524,8 @@ body {
 }
 
 .p-avatar {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -524,6 +533,8 @@ body {
   font-size: 0.9rem;
   background: rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
 }
 
 .p-info {
