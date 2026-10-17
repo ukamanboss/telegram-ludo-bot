@@ -3,112 +3,227 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Miku Ludo Royale</title>
+  <title>Miku Game Hub — Ludo & Chess Royale</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app-shell">
-    <!-- Top Header Bar -->
+    <!-- Persistent Top Header with Player TG Name & ID in Top-Right Corner -->
     <header class="top-bar">
       <div class="brand-box">
-        <span class="brand-logo">🎲</span>
+        <button id="backHomeBtn" class="icon-btn hidden" title="Back to Home">🏠</button>
+        <span class="brand-logo">🎧</span>
         <div>
-          <h1 class="brand-title">MIKU LUDO ROYALE</h1>
+          <h1 class="brand-title">MIKU ARCADE</h1>
           <div class="room-pill">
             <span id="connDot" class="conn-dot offline"></span>
-            <span id="connText">Connecting...</span>
-            <span class="divider">•</span>
-            <span>Room: <strong id="roomCodeLabel">----</strong></span>
+            <span id="connText">Ready</span>
           </div>
         </div>
       </div>
 
-      <div class="top-actions">
+      <!-- Top-Right Corner: Player Telegram Name & ID Badge + Sound Toggle -->
+      <div class="top-right-box">
+        <div class="tg-profile-badge">
+          <div class="tg-avatar" id="tgUserInitial">M</div>
+          <div class="tg-user-meta">
+            <div class="tg-user-name" id="tgUserName">Telegram User</div>
+            <div class="tg-user-id" id="tgUserId">ID: --------</div>
+          </div>
+        </div>
         <button id="soundToggleBtn" class="icon-btn" title="Toggle Sound">🔊</button>
-        <button id="addBotBtn" class="action-chip" title="Add AI Bot">+ 🤖 Bot</button>
-        <button id="startMatchBtn" class="action-chip primary-chip">▶ Start</button>
       </div>
     </header>
 
-    <!-- Live Event Banner -->
-    <div id="eventBanner" class="event-banner">
-      ✨ Room ready! Doston ko join karao ya '+ 🤖 Bot' daba kar match start karo!
+    <!-- ================================================================= -->
+    <!-- SCREEN 1: HOME SCREEN (MAIN MENU)                                 -->
+    <!-- ================================================================= -->
+    <main id="homeScreen" class="home-screen">
+      <!-- Hero Banner -->
+      <div class="hero-card">
+        <div class="hero-badge">✨ MIKU AI GAMING HUB ✨</div>
+        <h2 class="hero-heading">What do you want to play today?</h2>
+        <p class="hero-sub">Apni bestie Miku ke saath khelo ya doston ko multiplayer room mein challenge karo!</p>
+      </div>
+
+      <!-- Room Code Bar (For Play with Friends) -->
+      <div class="room-box-card">
+        <div class="room-box-header">
+          <span>🔑 <strong>Active Room Code:</strong></span>
+          <span id="homeRoomBadge" class="room-code-pill">MKROYALE</span>
+        </div>
+        <div class="room-input-row">
+          <input
+            type="text"
+            id="customRoomInput"
+            class="room-input"
+            placeholder="Enter friend's Room Code..."
+            maxlength="12"
+          />
+          <button id="applyRoomBtn" class="room-set-btn">Join Code</button>
+        </div>
+      </div>
+
+      <!-- LUDO ROYALE SECTION -->
+      <section class="game-section ludo-section">
+        <div class="section-header">
+          <span class="sec-icon">🎲</span>
+          <div>
+            <h3 class="sec-title">Ludo Royale</h3>
+            <p class="sec-desc">Classic 4-Color Board • Sound Effects & Live Chat</p>
+          </div>
+        </div>
+
+        <div class="ai-count-row">
+          <span class="ai-label">Miku AI Bots:</span>
+          <div class="ai-pills">
+            <button class="ai-pill active" data-bots="1">1v1 Miku</button>
+            <button class="ai-pill" data-bots="3">4-Player AI</button>
+          </div>
+        </div>
+
+        <div class="mode-btn-grid">
+          <button id="btnLudoMiku" class="mode-btn miku-btn">
+            <span class="btn-emoji">🤖</span>
+            <div class="btn-text">
+              <strong>Play with Miku</strong>
+              <small>Instant AI Match</small>
+            </div>
+          </button>
+
+          <button id="btnLudoFriends" class="mode-btn friends-btn">
+            <span class="btn-emoji">👥</span>
+            <div class="btn-text">
+              <strong>Play with Friends</strong>
+              <small>Live Multiplayer Room</small>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- CHESS ROYALE SECTION -->
+      <section class="game-section chess-section">
+        <div class="section-header">
+          <span class="sec-icon">♟️</span>
+          <div>
+            <h3 class="sec-title">Chess Royale</h3>
+            <p class="sec-desc">1v1 Grandmaster Arena • Smart Minimax AI</p>
+          </div>
+        </div>
+
+        <div class="mode-btn-grid">
+          <button id="btnChessMiku" class="mode-btn chess-miku-btn">
+            <span class="btn-emoji">🧠</span>
+            <div class="btn-text">
+              <strong>Play with Miku</strong>
+              <small>vs Miku Chess AI</small>
+            </div>
+          </button>
+
+          <button id="btnChessFriends" class="mode-btn chess-friends-btn">
+            <span class="btn-emoji">⚔️</span>
+            <div class="btn-text">
+              <strong>Play with Friends</strong>
+              <small>1v1 Room Challenge</small>
+            </div>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- ================================================================= -->
+    <!-- SCREEN 2: LUDO GAME BOARD SCREEN                                  -->
+    <!-- ================================================================= -->
+    <div id="gameScreen" class="game-screen hidden">
+      <!-- Match Sub-Controls Bar -->
+      <div class="match-toolbar">
+        <div class="room-tag">Room: <strong id="roomCodeLabel">----</strong></div>
+        <div class="toolbar-Btns">
+          <button id="addBotBtn" class="action-chip">+ 🤖 Miku Bot</button>
+          <button id="startMatchBtn" class="action-chip primary-chip">▶ Start Match</button>
+        </div>
+      </div>
+
+      <!-- Live Event Banner -->
+      <div id="eventBanner" class="event-banner">
+        ✨ Room ready! Tap '▶ Start Match' to roll the dice!
+      </div>
+
+      <!-- Top Player Cards (Red & Green) -->
+      <div class="player-row">
+        <div id="card-red" class="player-card card-red">
+          <div class="p-avatar" id="avatar-red">🔴</div>
+          <div class="p-info">
+            <div class="p-name" id="name-red">Waiting...</div>
+            <div class="p-sub" id="sub-red">Red Yard</div>
+          </div>
+          <div class="p-score" id="score-red">0/4</div>
+        </div>
+
+        <div id="card-green" class="player-card card-green">
+          <div class="p-avatar" id="avatar-green">🟢</div>
+          <div class="p-info">
+            <div class="p-name" id="name-green">Waiting...</div>
+            <div class="p-sub" id="sub-green">Green Yard</div>
+          </div>
+          <div class="p-score" id="score-green">0/4</div>
+        </div>
+      </div>
+
+      <!-- Center 15x15 Ludo Board Canvas -->
+      <div class="board-wrapper">
+        <canvas id="ludoCanvas" width="600" height="600"></canvas>
+        <div id="floatingEmojiLayer" class="floating-emoji-layer"></div>
+      </div>
+
+      <!-- Bottom Player Cards (Blue & Yellow) -->
+      <div class="player-row">
+        <div id="card-blue" class="player-card card-blue">
+          <div class="p-avatar" id="avatar-blue">🔵</div>
+          <div class="p-info">
+            <div class="p-name" id="name-blue">Waiting...</div>
+            <div class="p-sub" id="sub-blue">Blue Yard</div>
+          </div>
+          <div class="p-score" id="score-blue">0/4</div>
+        </div>
+
+        <div id="card-yellow" class="player-card card-yellow">
+          <div class="p-avatar" id="avatar-yellow">🟡</div>
+          <div class="p-info">
+            <div class="p-name" id="name-yellow">Waiting...</div>
+            <div class="p-sub" id="sub-yellow">Yellow Yard</div>
+          </div>
+          <div class="p-score" id="score-yellow">0/4</div>
+        </div>
+      </div>
+
+      <!-- Bottom Dice Dock & Quick Emoji Bar -->
+      <footer class="bottom-dock">
+        <div class="emoji-bar">
+          <button class="emoji-btn" data-emoji="😂">😂</button>
+          <button class="emoji-btn" data-emoji="🔥">🔥</button>
+          <button class="emoji-btn" data-emoji="😭">😭</button>
+          <button class="emoji-btn" data-emoji="👑">👑</button>
+        </div>
+
+        <button id="diceBtn" class="dice-dock-btn">
+          <div id="diceCube" class="dice-cube" data-val="6">
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+          </div>
+          <div class="dice-caption" id="diceCaption">ROLL DICE</div>
+        </button>
+
+        <div class="emoji-bar">
+          <button class="emoji-btn" data-emoji="⚡">⚡</button>
+          <button class="emoji-btn" data-emoji="👏">👏</button>
+          <button class="emoji-btn" data-emoji="💀">💀</button>
+          <button id="resetBtn" class="emoji-btn" title="Reset Board">🔄</button>
+        </div>
+      </footer>
     </div>
-
-    <!-- Top Player Cards (Red & Green) -->
-    <div class="player-row">
-      <div id="card-red" class="player-card card-red">
-        <div class="p-avatar" id="avatar-red">🔴</div>
-        <div class="p-info">
-          <div class="p-name" id="name-red">Waiting...</div>
-          <div class="p-sub" id="sub-red">Red Yard</div>
-        </div>
-        <div class="p-score" id="score-red">0/4</div>
-      </div>
-
-      <div id="card-green" class="player-card card-green">
-        <div class="p-avatar" id="avatar-green">🟢</div>
-        <div class="p-info">
-          <div class="p-name" id="name-green">Waiting...</div>
-          <div class="p-sub" id="sub-green">Green Yard</div>
-        </div>
-        <div class="p-score" id="score-green">0/4</div>
-      </div>
-    </div>
-
-    <!-- Center 15x15 Ludo Board Canvas -->
-    <div class="board-wrapper">
-      <canvas id="ludoCanvas" width="600" height="600"></canvas>
-      <div id="floatingEmojiLayer" class="floating-emoji-layer"></div>
-    </div>
-
-    <!-- Bottom Player Cards (Blue & Yellow) -->
-    <div class="player-row">
-      <div id="card-blue" class="player-card card-blue">
-        <div class="p-avatar" id="avatar-blue">🔵</div>
-        <div class="p-info">
-          <div class="p-name" id="name-blue">Waiting...</div>
-          <div class="p-sub" id="sub-blue">Blue Yard</div>
-        </div>
-        <div class="p-score" id="score-blue">0/4</div>
-      </div>
-
-      <div id="card-yellow" class="player-card card-yellow">
-        <div class="p-avatar" id="avatar-yellow">🟡</div>
-        <div class="p-info">
-          <div class="p-name" id="name-yellow">Waiting...</div>
-          <div class="p-sub" id="sub-yellow">Yellow Yard</div>
-        </div>
-        <div class="p-score" id="score-yellow">0/4</div>
-      </div>
-    </div>
-
-    <!-- Bottom Dice Dock & Quick Emoji Bar -->
-    <footer class="bottom-dock">
-      <div class="emoji-bar">
-        <button class="emoji-btn" data-emoji="😂">😂</button>
-        <button class="emoji-btn" data-emoji="🔥">🔥</button>
-        <button class="emoji-btn" data-emoji="😭">😭</button>
-        <button class="emoji-btn" data-emoji="👑">👑</button>
-      </div>
-
-      <button id="diceBtn" class="dice-dock-btn">
-        <div id="diceCube" class="dice-cube" data-val="6">
-          <span class="pip"></span><span class="pip"></span><span class="pip"></span>
-          <span class="pip"></span><span class="pip"></span><span class="pip"></span>
-          <span class="pip"></span><span class="pip"></span><span class="pip"></span>
-        </div>
-        <div class="dice-caption" id="diceCaption">ROLL DICE</div>
-      </button>
-
-      <div class="emoji-bar">
-        <button class="emoji-btn" data-emoji="⚡">⚡</button>
-        <button class="emoji-btn" data-emoji="👏">👏</button>
-        <button class="emoji-btn" data-emoji="💀">💀</button>
-        <button id="resetBtn" class="emoji-btn" title="Reset Board">🔄</button>
-      </div>
-    </footer>
   </div>
 
   <!-- Winner Celebration Modal -->
@@ -119,7 +234,7 @@
       <p id="winnerSubtitle">Player won the Ludo Royale match!</p>
       <div class="modal-actions">
         <button id="playAgainBtn" class="modal-btn primary">🔄 Play Again</button>
-        <button id="shareResultBtn" class="modal-btn secondary">📤 Share to Chat</button>
+        <button id="homeFromModalBtn" class="modal-btn secondary">🏠 Home Menu</button>
       </div>
     </div>
   </div>
